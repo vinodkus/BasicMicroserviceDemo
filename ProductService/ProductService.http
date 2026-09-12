@@ -1,0 +1,19 @@
+@ProductService_HostAddress = http://localhost:5001
+
+GET {{ProductService_HostAddress}}/api/products
+Accept: application/json
+
+###
+
+GET {{ProductService_HostAddress}}/api/products/1
+Accept: application/json
+
+###
+
+POST {{ProductService_HostAddress}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Monitor",
+  "price": 15000
+}
