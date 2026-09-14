@@ -1,7 +1,8 @@
 namespace OrderService.Models;
 
-// Order belongs to OrderService. Product details are NOT stored here.
-// We only store ProductId. Price is fetched from ProductService at order-create time.
+// Order belongs to OrderService and is stored in OrderService's own database.
+// Product details are NOT stored here. We only store ProductId.
+// Price is fetched from ProductService over HTTP at order-create time.
 public class Order
 {
     public int Id { get; set; }

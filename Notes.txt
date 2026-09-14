@@ -1,0 +1,118 @@
+Product Service
+http://localhost:5001/swagger
+
+Order Service
+http://localhost:5002/swagger
+
+
+how to run the service
+Command Prompt/Terminal खोलें और ProductService वाले folder में जाएँ:
+
+cd "आपका-path\BasicMicroservicesDemo\ProductService"
+dotnet run
+यह सिर्फ ProductService को start करेगा।
+
+यह सिर्फ ProductService को start करेगा।
+
+
+OrderService को start करना
+
+दूसरा Command Prompt/Terminal खोलें:
+cd "आपका-path\BasicMicroservicesDemo\OrderService"
+dotnet run
+\
+यह सिर्फ OrderService को start करेगा।
+
+http://localhost:5002/swagger
+
+और भी आसान तरीका
+
+अगर आप पहले से solution के root folder में हैं:
+
+dotnet run --project ProductService
+
+और दूसरे terminal में:
+dotnet run --project OrderService
+
+
+इससे आपको cd करके अलग-अलग folder में जाने की जरूरत नहीं।
+
+
+how to stop the service
+
+बहुत आसान है। अगर आपने service इस तरह start की है:
+
+dotnet run --project ProductService
+
+तो उसी terminal में:
+
+Ctrl + C
+
+दबा दीजिए।
+
+यह ProductService को stop कर देगा।
+
+इसी तरह दूसरे terminal में अगर:
+
+dotnet run --project OrderService
+
+चल रहा है, तो वहाँ भी:
+
+Ctrl + C
+
+दबाएँ।
+
+Terminal 1
+ProductService :5001
+        ↓
+     Ctrl + C
+        ↓
+     STOPPED
+
+
+Terminal 2
+OrderService :5002
+        ↓
+     Ctrl + C
+        ↓
+     STOPPED
+
+
+but specific service folder me jakar kaise stop karte hain
+
+हाँ, यहाँ एक important बात है: folder में जाकर stop नहीं करते। 🙂
+
+जब आप:
+
+cd ProductService
+dotnet run
+
+करते हैं, तो dotnet run उसी terminal में एक process शुरू करता है।
+
+अगर terminal बंद कर दिया और बाद में service को stop करना है
+
+तब ProductService folder में cd करके Ctrl+C काम नहीं करेगा, क्योंकि उस terminal में वह process attached नहीं है।
+
+ऐसे में PID से stop करना होगा।
+
+पहले:
+
+netstat -ano | findstr :5001
+
+मिलेगा:
+
+TCP    127.0.0.1:5001    ...    LISTENING    21932
+
+यहाँ 21932 PID है।
+
+फिर:
+
+taskkill /PID 21932 /F
+
+इसी तरह OrderService के लिए:
+
+netstat -ano | findstr :5002
+
+फिर:
+
+taskkill /PID <PID> /F

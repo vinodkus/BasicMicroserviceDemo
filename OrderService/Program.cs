@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using OrderService.Data;
 using OrderService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,8 +13,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Singleton = one shared OrderStore for the whole application.
-builder.Services.AddSingleton<OrderStore>();
+// OrderService uses its OWN SQLite database.
+// This is NOT ProductService's database.
+builder.Services.AddDbContext<OrderDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("OrderDatabase")));
 
 // IHttpClientFactory + typed HttpClient.
 // BaseAddress is ProductService: http://localhost:5001

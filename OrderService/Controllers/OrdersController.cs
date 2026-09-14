@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using OrderService.Data;
 using OrderService.Models;
 using OrderService.Services;
 
@@ -8,27 +10,28 @@ namespace OrderService.Controllers;
 [Route("api/orders")]
 public class OrdersController : ControllerBase
 {
-    private readonly OrderStore _orderStore;
+    private readonly OrderDbContext _db;
     private readonly ProductApiClient _productApiClient;
 
-    public OrdersController(OrderStore orderStore, ProductApiClient productApiClient)
+    public OrdersController(OrderDbContext db, ProductApiClient productApiClient)
     {
-        _orderStore = orderStore;
+        _db = db;
         _productApiClient = productApiClient;
     }
 
     // GET /api/orders
     [HttpGet]
-    public ActionResult<List<Order>> GetAll()
+    public async Task<ActionResult<List<Order>>> GetAll()
     {
-        return Ok(_orderStore.GetAll());
+        var orders = await _db.Orders.ToListAsync();
+        return Ok(orders);
     }
 
     // GET /api/orders/1
     [HttpGet("{id:int}")]
-    public ActionResult<Order> GetById(int id)
+    public async Task<ActionResult<Order>> GetById(int id)
     {
-        var order = _orderStore.GetById(id);
+        var order = await _db.Orders.FindAsync(id);
 
         if (order is null)
         {
@@ -40,7 +43,7 @@ public class OrdersController : ControllerBase
 
     // POST /api/orders
     // This is the Microservices communication flow:
-    // Client -> OrderService -> HTTP GET ProductService -> OrderService creates order
+    // Client -> OrderService -> HTTP GET ProductService -> OrderService saves order in its OWN database
     [HttpPost]
     public async Task<ActionResult<Order>> Create([FromBody] CreateOrderRequest request)
     {
@@ -56,7 +59,7 @@ public class OrdersController : ControllerBase
 
         // 1. Receive the request (already done above).
         // 2. Call ProductService using HttpClient.
-        // 3. Get the product information.
+        // 3. Get the product information (price lives in ProductService, not in this database).
         var lookup = await _productApiClient.GetProductByIdAsync(request.ProductId);
 
         if (lookup.IsNotFound)
@@ -77,11 +80,17 @@ public class OrdersController : ControllerBase
         // 4. Calculate TotalAmount = Product.Price * Quantity
         var totalAmount = product.Price * request.Quantity;
 
-        // 5. Create the order.
-        // 6. Store it in the in-memory order list.
-        var order = _orderStore.Add(request.ProductId, request.Quantity, totalAmount);
+        // 5. Save the order into OrderService's own database.
+        var order = new Order
+        {
+            ProductId = request.ProductId,
+            Quantity = request.Quantity,
+            TotalAmount = totalAmount
+        };
 
-        // 7. Return the created order.
+        _db.Orders.Add(order);
+        await _db.SaveChangesAsync();
+
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, order);
     }
 }

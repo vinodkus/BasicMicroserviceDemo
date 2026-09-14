@@ -1,4 +1,5 @@
-using ProductService.Services;
+using Microsoft.EntityFrameworkCore;
+using ProductService.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,9 +13,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Singleton = one shared ProductStore for the whole application.
-// This keeps the in-memory product list alive across all HTTP requests.
-builder.Services.AddSingleton<ProductStore>();
+// ProductService uses its OWN SQLite database.
+// Connection string comes from appsettings.json (not hard-coded here).
+builder.Services.AddDbContext<ProductDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("ProductDatabase")));
 
 var app = builder.Build();
 
