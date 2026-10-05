@@ -1,11 +1,16 @@
 using System.Net;
 using OrderService.Models;
+using Polly.Timeout;
 
 namespace OrderService.Services;
 
 // This class talks to the OTHER microservice: ProductService.
 // This is the most important Microservices idea in this demo:
 // OrderService does not store products. It asks ProductService over HTTP.
+//
+// Timeout + retry are configured on this HttpClient in Program.cs.
+// This method still makes one GET call. The resilience handler may repeat
+// that GET automatically if ProductService has a temporary failure.
 public class ProductApiClient
 {
     private readonly HttpClient _httpClient;
@@ -44,9 +49,10 @@ public class ProductApiClient
 
             return ProductLookupResult.Found(product);
         }
-        catch (HttpRequestException)
+        catch (Exception ex) when (ex is HttpRequestException or TimeoutRejectedException or TaskCanceledException)
         {
-            // This happens when ProductService is not running, or the URL is wrong.
+            // Happens after timeout/retry still fail:
+            // ProductService is stopped, too slow, or the URL is wrong.
             return ProductLookupResult.Unavailable(
                 "Cannot reach ProductService. Make sure it is running on http://localhost:5001.");
         }
