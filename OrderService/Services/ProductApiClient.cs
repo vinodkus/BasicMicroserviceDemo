@@ -1,5 +1,6 @@
 using System.Net;
 using OrderService.Models;
+using Polly.CircuitBreaker;
 using Polly.Timeout;
 
 namespace OrderService.Services;
@@ -26,6 +27,8 @@ public class ProductApiClient
     {
         try
         {
+            Console.WriteLine("[ProductService] Request started");
+
             // Example: GET http://localhost:5001/api/products/1
             var response = await _httpClient.GetAsync($"/api/products/{productId}");
 
@@ -36,8 +39,12 @@ public class ProductApiClient
 
             if (!response.IsSuccessStatusCode)
             {
-                return ProductLookupResult.Unavailable(
-                    $"ProductService returned HTTP {(int)response.StatusCode}.");
+                var body = await response.Content.ReadAsStringAsync();
+                var message = string.IsNullOrWhiteSpace(body)
+                    ? "ProductService is temporarily unavailable. Order cannot be created right now."
+                    : body;
+
+                return ProductLookupResult.Unavailable(message);
             }
 
             var product = await response.Content.ReadFromJsonAsync<ProductDto>();
@@ -49,12 +56,13 @@ public class ProductApiClient
 
             return ProductLookupResult.Found(product);
         }
-        catch (Exception ex) when (ex is HttpRequestException or TimeoutRejectedException or TaskCanceledException)
+        catch (Exception ex) when (ex is HttpRequestException or TimeoutRejectedException or TaskCanceledException or BrokenCircuitException)
         {
-            // Happens after timeout/retry still fail:
-            // ProductService is stopped, too slow, or the URL is wrong.
+            // Safety net if an exception still escapes the Fallback policy.
+            Console.WriteLine("[OrderService] ProductService unavailable.");
+            Console.WriteLine("[OrderService] Request failed after retries.");
             return ProductLookupResult.Unavailable(
-                "Cannot reach ProductService. Make sure it is running on http://localhost:5001.");
+                "ProductService is temporarily unavailable. Order cannot be created right now.");
         }
     }
 }
